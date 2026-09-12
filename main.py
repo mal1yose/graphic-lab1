@@ -42,7 +42,7 @@ class RotationApp:
             e.grid(row=i // 2, column=(i % 2) * 2 + 1, padx=2, pady=2)
             self.ents.append(e)
 
-        tk.Button(f, text="Обновить объект", bg="#008CBA", fg="white", command=self.update_v).pack(fill=tk.X, pady=5)
+        tk.Button(f, text="Обновить объект", bg="#f8f9fa", command=self.update_v).pack(fill=tk.X, pady=5)
         tk.Frame(f, height=2, bd=1, relief=tk.SUNKEN).pack(fill=tk.X, pady=10)
 
         tk.Label(f, text="Точка поворота (X,Y):", font=("Arial", 10, "bold"), bg="#f8f9fa").pack(anchor=tk.W)
@@ -54,7 +54,7 @@ class RotationApp:
         self.e_cy = tk.Entry(cf, width=5);
         self.e_cy.insert(0, "50");
         self.e_cy.grid(row=0, column=1, padx=2)
-        tk.Button(f, text="Применить точку", command=self.update_c).pack(fill=tk.X, pady=5)
+        tk.Button(f, text="Применить", command=self.update_c).pack(fill=tk.X, pady=5)
 
         tk.Frame(f, height=2, bd=1, relief=tk.SUNKEN).pack(fill=tk.X, pady=10)
         tk.Label(f, text="Угол (градусы):", font=("Arial", 10, "bold"), bg="#f8f9fa").pack(anchor=tk.W)
@@ -62,13 +62,10 @@ class RotationApp:
         self.e_ang.insert(0, "45");
         self.e_ang.pack(anchor=tk.W, pady=5)
 
-        tk.Button(f, text="Повернуть", bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), command=self.rotate).pack(
+        tk.Button(f, text="Повернуть", bg="#f8f9fa",  font=("Arial", 10, "bold"), command=self.rotate).pack(
             fill=tk.X, pady=5)
-        tk.Button(f, text="Сбросить", bg="#f44336", fg="white", command=self.reset).pack(fill=tk.X, pady=5)
+        tk.Button(f, text="Сбросить", bg="#f8f9fa",  command=self.reset).pack(fill=tk.X, pady=5)
 
-        tk.Label(f,
-                 text="Управление:\n• Скролл — масштаб (зум)\n• Зажим ЛКМ — двигать холст\n• Правый клик — задать точку O'",
-                 font=("Arial", 8, "italic"), fg="dimgray", justify=tk.LEFT, bg="#f8f9fa").pack(anchor=tk.W, pady=10)
 
         self.canvas = tk.Canvas(self.root, width=self.w, height=self.h, bg="white", highlightthickness=1,
                                 highlightbackground="gray")
@@ -136,6 +133,19 @@ class RotationApp:
         self.canvas.create_text(mid_x - 15, 15, text="Y", font=("Arial", 11, "bold"))
         self.canvas.create_text(mid_x - 10, mid_y + 10, text="0", font=("Arial", 9, "bold"))
 
+        # 1. Переводим начальные (оригинальные) координаты в координаты экрана
+        orig_ax, orig_ay = self.to_c(self.o_v[0], self.o_v[1])
+        orig_bx, orig_by = self.to_c(self.o_v[2], self.o_v[3])
+        orig_cx, orig_cy = self.to_c(self.o_v[4], self.o_v[5])
+
+        # 2. Отрисовываем начальное положение пунктиром
+        # fill="" означает, что внутри фигура будет прозрачной
+        # dash=(4, 4) задает длину штриха и пробела в пикселях
+        self.canvas.create_polygon(
+            orig_ax, orig_ay, orig_bx, orig_by, orig_cx, orig_cy,
+            fill="", outline="red", width=2, dash=(10, 4)
+        )
+
         # Координаты треугольника на холсте
         ax, ay = self.to_c(self.ax, self.ay)
         bx, by = self.to_c(self.bx, self.by)
@@ -183,18 +193,6 @@ class RotationApp:
         self.draw_scene()
 
     def rotate(self):
-        """
-        МАТЕМАТИЧЕСКАЯ РЕАЛИЗАЦИЯ ФОРМУЛЫ СО СТРАНИЦЫ 10 УЧЕБНИКА:
-
-        Композиция трех матриц преобразования в однородных координатах:
-        1. Перенос начала координат в точку O(x0, y0) -> Матрица T(-x0, -y0)
-        2. Основная операция — поворот на угол alpha -> Матрица поворота R_alpha
-        3. Обратный перенос начала координат -> Матрица T(+x0, +y0)
-
-        В развернутом матричном виде для вектора-строки [x, y, 1] это дает уравнения:
-        x_new = (x - x0) * cos(alpha) - (y - y0) * sin(alpha) + x0
-        y_new = (x - x0) * sin(alpha) + (y - y0) * cos(alpha) + y0
-        """
         try:
             rad = math.radians(float(self.e_ang.get()))
         except ValueError:
@@ -203,7 +201,6 @@ class RotationApp:
         c, s = math.cos(rad), math.sin(rad)
         x0, y0 = self.center_x, self.center_y
 
-        # Согласно результирующей матрице на стр. 10 (произведение трех матриц):
         self.ax, self.ay = (self.ax - x0) * c - (self.ay - y0) * s + x0, (self.ax - x0) * s + (self.ay - y0) * c + y0
         self.bx, self.by = (self.bx - x0) * c - (self.by - y0) * s + x0, (self.bx - x0) * s + (self.by - y0) * c + y0
         self.cx, self.cy = (self.cx - x0) * c - (self.cy - y0) * s + x0, (self.cx - x0) * s + (self.cy - y0) * c + y0
